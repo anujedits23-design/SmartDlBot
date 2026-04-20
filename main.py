@@ -57,9 +57,9 @@ async def send_start_message(client, message):
     "• <b>Just send me a link</b> and I will download it instantly ⚡\n\n"
     "<b>💡 Note:</b> The bot also works in groups.\n"
     "If you want to use it in a group, press the button below 👇\n\n"
-    "<b>━━━━━━━━━━━━━━━━━━━━━━━━━━</b>\n"
+    "<b>━━━━━━━━━━━━━━━━━━━━━━</b>\n"
 "<b>🔔 Don't Forget To <a href='https://t.me/anujeditbyak'>Join Here</a> For Updates!</b>"
-)
+    )
     await message.reply_text(
         start_message,
         parse_mode=ParseMode.HTML,
@@ -139,11 +139,24 @@ async def start_menu_callback(client: Client, callback_query: CallbackQuery):
     full_name = f"{callback_query.from_user.first_name} {callback_query.from_user.last_name}" if callback_query.from_user.last_name else callback_query.from_user.first_name
 
     start_message = (
-        f"<b>Hi {full_name}! Welcome To This Bot...</b>\n"
-        "<b>━━━━━━━━━━━━━━━━━━━━━━━━━━</b>\n"
-        "<b><a href='tg://user?id=7892805795'>Smart Tool ⚙️</a></b>: The ultimate toolkit on Telegram, offering Facebook,YouTube,Pinterest,Spotify Downloader. Simplify your tasks with ease!\n"
-        "<b>━━━━━━━━━━━━━━━━━━━━━━━━━━</b>\n"
-        "<b>Don't Forget To <a href='https://t.me/anujeditbyak'>Join Here</a> For Updates!</b>"
+    f"<b>👋🏻 Hello {full_name}!</b>\n\n"
+    "<b>📥 I can help you download videos and images from:</b>\n\n"
+    "🌐 YouTube\n"
+    "📸 Instagram\n"
+    "🎵 TikTok\n"
+    "📌 Pinterest\n"
+    "👻 Snapchat\n"
+    "🎬 Likee\n"
+    "🌍 VK\n"
+    "📘 Facebook\n"
+    "🧵 Threads\n"
+    "🎧 Music\n\n"
+    "<b>━━━━━━━━━━━━━━━━━━━━━━</b>\n\n"
+    "• <b>Just send me a link</b> and I will download it instantly ⚡\n\n"
+    "<b>💡 Note:</b> The bot also works in groups.\n"
+    "If you want to use it in a group, press the button below 👇\n\n"
+    "<b>━━━━━━━━━━━━━━━━━━━━━━</b>\n"
+"<b>🔔 Don't Forget To <a href='https://t.me/anujeditbyak'>Join Here</a> For Updates!</b>"
     )
 
     await callback_query.message.edit_text(
