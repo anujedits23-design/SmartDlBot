@@ -60,6 +60,7 @@ async def send_start_message(client, message):
     "<b>━━━━━━━━━━━━━━━━━━━━━━</b>\n"
 "<b>🔔 Don't Forget To <a href='https://t.me/anujeditbyak'>Join Here</a> For Updates!</b>"
     )
+    
     await message.reply_text(
         start_message,
         parse_mode=ParseMode.HTML,
