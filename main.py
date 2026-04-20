@@ -10,6 +10,7 @@ from youtube.youtube import setup_downloader_handler
 from pinterest.pinterest import setup_pinterest_handler
 from facebook.facebook import setup_dl_handlers
 from spotify.spotify import setup_spotify_handler
+from instagram.instagram import setup_ig_handlers
 
 # Initialize the bot client
 app = Client(
@@ -24,6 +25,7 @@ setup_downloader_handler(app)
 setup_pinterest_handler(app)
 setup_dl_handlers(app)
 setup_spotify_handler(app)
+setup_ig_handlers(app)
 
 @app.on_message(filters.command(["start"], prefixes=["/", "."]) & filters.private)
 async def send_start_message(client, message):
