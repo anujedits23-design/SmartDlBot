@@ -65,8 +65,6 @@ async def help_menu_callback(client: Client, callback_query: CallbackQuery):
     await callback_query.answer()   # ✅ HERE
 
     help_message = (
-        ...
-    )
         "<b>🎥 Social Media and Music Downloader</b>\n"
         "━━━━━━━━━━━━━━━━━━━━━━\n"
         "<b>USAGE:</b>\n"
