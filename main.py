@@ -41,9 +41,22 @@ async def send_start_message(client, message):
 
     # Main welcome message
     start_message = (
-        f"<b>Hi {full_name}! Welcome To This Bot...</b>\n"
-        "<b>━━━━━━━━━━━━━━━━━━━━━━━━━━</b>\n"
-        "<b><a href='tg://user?id=7892805795'>Smart Tool ⚙️</a></b>: The ultimate toolkit on Telegram, offering Facebook,YouTube,Pinterest,Spotify Downloader. Simplify your tasks with ease!\n"
+    f"<b>👋🏻 Hello {full_name}!</b>\n\n"
+    "<b>📥 I can help you download videos and images from:</b>\n\n"
+    "🌐 YouTube\n"
+    "📸 Instagram\n"
+    "🎵 TikTok\n"
+    "📌 Pinterest\n"
+    "👻 Snapchat\n"
+    "🎬 Likee\n"
+    "🌍 VK\n"
+    "📘 Facebook\n"
+    "🧵 Threads\n"
+    "🎧 Music\n\n"
+    "<b>━━━━━━━━━━━━━━━━━━━━━━</b>\n\n"
+    "• <b>Just send me a link</b> and I will download it for you instantly ⚡\n\n"
+    "<b>💡 Note:</b> The bot also works in groups.\n"
+    "If you want to use it in a group, press the button below 👇"
         "<b>━━━━━━━━━━━━━━━━━━━━━━━━━━</b>\n"
         "<b>Don't Forget To <a href='https://t.me/anujeditbyak'>Join Here</a> For Updates!</b>"
     )
