@@ -58,7 +58,7 @@ async def send_start_message(client, message):
     "<b>💡 Note:</b> The bot also works in groups.\n"
     "If you want to use it in a group, press the button below 👇\n\n"
     "<b>━━━━━━━━━━━━━━━━━━━━━━━━━━</b>\n"
-    "<b>🔔 Don't Forget To <a href='https://t.me/anujeditbyak'>Join Here</a> For Updates!</b>"
+"<b>🔔 Don't Forget To <a href='https://t.me/anujeditbyak'>Join Here</a> For Updates!</b>"
 )
     await message.reply_text(
         start_message,
