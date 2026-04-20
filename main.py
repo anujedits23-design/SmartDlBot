@@ -41,9 +41,9 @@ async def send_start_message(client, message):
     start_message = (
         f"<b>Hi {full_name}! Welcome To This Bot...</b>\n"
         "<b>━━━━━━━━━━━━━━━━━━━━━━━━━━</b>\n"
-        "<b><a href='tg://user?id=7303810912'>Smart Tool ⚙️</a></b>: The ultimate toolkit on Telegram, offering Facebook,YouTube,Pinterest,Spotify Downloader. Simplify your tasks with ease!\n"
+        "<b><a href='tg://user?id=7892805795'>Smart Tool ⚙️</a></b>: The ultimate toolkit on Telegram, offering Facebook,YouTube,Pinterest,Spotify Downloader. Simplify your tasks with ease!\n"
         "<b>━━━━━━━━━━━━━━━━━━━━━━━━━━</b>\n"
-        "<b>Don't Forget To <a href='https://t.me/ModVipRM'>Join Here</a> For Updates!</b>"
+        "<b>Don't Forget To <a href='https://t.me/anujeditbyak'>Join Here</a> For Updates!</b>"
     )
 
     await message.reply_text(
@@ -51,8 +51,8 @@ async def send_start_message(client, message):
         parse_mode=ParseMode.HTML,
         reply_markup=InlineKeyboardMarkup([
             [InlineKeyboardButton("⚙️ Help", callback_data="help_menu"),
-             InlineKeyboardButton("➕ Add Me", url="https://t.me/ItsSmartToolBot?startgroup=new&admin=post_messages+delete_messages+edit_messages+pin_messages+change_info+invite_users+promote_members")],
-            [InlineKeyboardButton("🔄 Updates", url="https://t.me/ModVipRM"),
+             InlineKeyboardButton("➕ Add Me", url="https://t.me/social_media_downloader_ak_bot?startgroup=new&admin=post_messages+delete_messages+edit_messages+pin_messages+change_info+invite_users+promote_members")],
+            [InlineKeyboardButton("🔄 Updates", url="https://t.me/anujeditbyak"),
              InlineKeyboardButton("ℹ️ About Me", callback_data="about_me")]
         ]),
         disable_web_page_preview=True,
@@ -79,7 +79,7 @@ async def help_menu_callback(client: Client, callback_query: CallbackQuery):
         "   - Example: <code>/song https://youtu.be/In8bfGnXavw</code> (Converts and downloads the video as MP3)\n\n"
         ">NOTE:\n"
         "1️⃣ Provide a valid public URL for each platform to download successfully.\n\n"
-        ">🔔 For Bot Update News: <a href='https://t.me/ModVipRM'>Join Now</a>"
+        ">🔔 For Bot Update News: <a href='https://t.me/anujeditbyak'>Join Now</a>"
     )
 
     await callback_query.message.edit_text(
@@ -97,14 +97,14 @@ async def about_me_callback(client: Client, callback_query: CallbackQuery):
         "<b>Name:</b> Smart Tool ⚙️\n"
         "<b>Version:</b> 3.0 (Beta Testing) 🛠\n\n"
         "<b>Development Team:</b>\n"
-        "- <b>Creator:</b> <a href='https://t.me/abirxdhackz'>⏤͟͞〲ᗩᗷiᖇ 𓊈乂ᗪ𓊉 👨‍💻</a>\n"
+        "- <b>Creator:</b> <a href='https://t.me/anujedits76'>𝐀𝐧𝐮𝐣 👨‍💻</a>\n"
         "<b>Technical Stack:</b>\n"
         "- <b>Language:</b> Python 🐍\n"
         "- <b>Libraries:</b> Aiogram, Pyrogram And Telethon 📚\n"
         "- <b>Database:</b> MongoDB Database 🗄\n"
         "- <b>Hosting:</b> Hostinger VPS 🌐\n\n"
         "<b>About:</b> Smart Tool ⚙️ The ultimate toolkit on Telegram, offering Facebook,YouTube,Pinterest,Spotify Downloader. Simplify your tasks with ease!\n\n"
-        ">🔔 For Bot Update News: <a href='https://t.me/ModVipRM'>Join Now</a>"
+        ">🔔 For Bot Update News: <a href='https://t.me/anujeditbyak'>Join Now</a>"
     )
 
     await callback_query.message.edit_text(
@@ -123,9 +123,9 @@ async def start_menu_callback(client: Client, callback_query: CallbackQuery):
     start_message = (
         f"<b>Hi {full_name}! Welcome To This Bot...</b>\n"
         "<b>━━━━━━━━━━━━━━━━━━━━━━━━━━</b>\n"
-        "<b><a href='tg://user?id=7303810912'>Smart Tool ⚙️</a></b>: The ultimate toolkit on Telegram, offering Facebook,YouTube,Pinterest,Spotify Downloader. Simplify your tasks with ease!\n"
+        "<b><a href='tg://user?id=7892805795'>Smart Tool ⚙️</a></b>: The ultimate toolkit on Telegram, offering Facebook,YouTube,Pinterest,Spotify Downloader. Simplify your tasks with ease!\n"
         "<b>━━━━━━━━━━━━━━━━━━━━━━━━━━</b>\n"
-        "<b>Don't Forget To <a href='https://t.me/ModVipRM'>Join Here</a> For Updates!</b>"
+        "<b>Don't Forget To <a href='https://t.me/anujeditbyak'>Join Here</a> For Updates!</b>"
     )
 
     await callback_query.message.edit_text(
@@ -133,8 +133,8 @@ async def start_menu_callback(client: Client, callback_query: CallbackQuery):
         parse_mode=ParseMode.HTML,
         reply_markup=InlineKeyboardMarkup([
             [InlineKeyboardButton("⚙️ Help", callback_data="help_menu"),
-             InlineKeyboardButton("➕ Add Me", url="https://t.me/ItsSmartToolBot?startgroup=new&admin=post_messages+delete_messages+edit_messages+pin_messages+change_info+invite_users+promote_members")],
-            [InlineKeyboardButton("🔄 Updates", url="https://t.me/ModVipRM"),
+             InlineKeyboardButton("➕ Add Me", url="https://t.me/social_media_downloader_ak_bot?startgroup=new&admin=post_messages+delete_messages+edit_messages+pin_messages+change_info+invite_users+promote_members")],
+            [InlineKeyboardButton("🔄 Updates", url="https://t.me/anujeditbyak"),
              InlineKeyboardButton("ℹ️ About Me", callback_data="about_me")]
         ]),
         disable_web_page_preview=True,
