@@ -126,10 +126,8 @@ async def about_cmd(client, message):
 
 # ------------------- HELP BUTTON -------------------
 
-@app.on_callback_query(filters.regex("help_menu"))
-async def help_menu(client, query: CallbackQuery):
-    await query.answer()
-
+@app.on_message(filters.command("help"))
+async def help_cmd(client, message):
     text = (
         "<b>🎥 Downloader Help</b>\n\n"
         "/fb - Facebook\n"
@@ -139,6 +137,11 @@ async def help_menu(client, query: CallbackQuery):
         "/yt - YouTube\n"
         "/song - MP3\n\n"
         "<b>Send link directly also works ✅</b>"
+    )
+
+    await message.reply_text(
+        text,
+        parse_mode=ParseMode.HTML
     )
 
     try:
@@ -155,16 +158,21 @@ async def help_menu(client, query: CallbackQuery):
 
 # ------------------- ABOUT BUTTON -------------------
 
-@app.on_callback_query(filters.regex("about_me"))
-async def about_menu(client, query: CallbackQuery):
-    await query.answer()
-
+@app.on_message(filters.command("about"))
+async def about_cmd(client, message):
     text = (
         "<b>Smart Tool ⚙️</b>\n"
         "Version: 3.0\n\n"
         "Developer: @anujedits76\n"
-        "Library: Pyrogram"
+        "Library: Pyrogram\n"
+        "Supports: YouTube | Instagram | Facebook | Spotify | Pinterest"
     )
+
+    await message.reply_text(
+        text,
+        parse_mode=ParseMode.HTML,
+        disable_web_page_preview=True
+)
 
     try:
         await query.message.edit_text(
