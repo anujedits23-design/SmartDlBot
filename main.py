@@ -24,8 +24,6 @@ from adminpanel.logs.logs import setup_logs_handler
 
 # ------------------- FLASK SERVER -------------------
 
-# ------------------- FLASK SERVER -------------------
-
 flask_app = Flask(__name__)
 
 @flask_app.route('/')
