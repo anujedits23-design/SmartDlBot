@@ -1,62 +1,120 @@
 from pyrogram import Client, filters
-from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton, CallbackQuery
-from pyrogram.enums import ParseMode
+from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 import asyncio
 from threading import Thread
 from flask import Flask
 import os
 
 from config import API_ID, API_HASH, BOT_TOKEN
-
 from format import build_quality_ui
 from youtube.youtube import download_video_sync, download_audio_sync
 
 
-# ------------------- FLASK SERVER -------------------
+# ---------------- FLASK SERVER ----------------
+flask_app = Flask(name)
 
-flask_app = Flask(__name__)
-
-@flask_app.route('/')
-def index():
-    return "Smart Tool Bot is running!"
+@flask_app.route("/")
+def home():
+    return "Smart Tool Bot Running 🚀"
 
 def run_flask():
-    port = int(os.environ.get("PORT", 5000))
-    flask_app.run(
-        host="0.0.0.0",
-        port=port,
-        debug=False,
-        use_reloader=False  # VERY IMPORTANT
-    )
+    port = int(os.getenv("PORT", 5000))
+    flask_app.run(host="0.0.0.0", port=port, debug=False, use_reloader=False)
 
-# Run Flask in background (daemon thread)
 Thread(target=run_flask, daemon=True).start()
 
-# ------------------- PYROGRAM BOT -------------------
 
+# ---------------- PYROGRAM BOT ----------------
 app = Client(
     "bot",
     api_id=API_ID,
     api_hash=API_HASH,
-    bot_token=BOT_TOKEN 
+    bot_token=BOT_TOKEN
 )
 
-# ------------------- LINK HANDLER -------------------
 
+# ---------------- LINK HANDLER ----------------
 @app.on_message(filters.regex(r"^(https?://).+"))
-async def universal_downloader(client, message):
+async def link_handler(client, message):
     url = message.text.strip()
 
     try:
-        markup = build_quality_ui(url)
-
         await message.reply_text(
             "📥 Select Quality 👇",
-            reply_markup=markup
+            reply_markup=build_quality_ui(url)
         )
+    except:
+        await message.reply_text("❌ Unsupported Link")
+
+
+# ---------------- CALLBACK HANDLER ----------------
+@app.on_callback_query()
+async def callback_handler(client, callback_query):
+    data = callback_query.data
+    await callback_query.answer()
+
+    try:
+        parts = data.split("|")
+        action = parts[0]
+        url = parts[1]
+        quality = parts[2] if len(parts) > 2 else None
+
+        # -------- VIDEO --------
+        if action == "vid":
+            await callback_query.message.edit_text("📥 Downloading Video...")
+
+            result = download_video_sync(url, quality)
+
+            if not result:
+                return await callback_query.message.edit_text("❌ Failed")
+
+            await client.send_video(
+                chat_id=callback_query.message.chat.id,
+                video=result["file_path"],
+                caption="🎬 Download Complete"
+            )
+
+            os.remove(result["file_path"])
+
+
+        # -------- AUDIO --------
+        elif action == "audio":
+            await callback_query.message.edit_text("🎵 Downloading Audio...")
+
+            result = download_audio_sync(url)
+
+            if not result:
+                return await callback_query.message.edit_text("❌ Failed")
+
+            await client.send_audio(
+                chat_id=callback_query.message.chat.id,
+                audio=result["file_path"],
+                caption="🎵 Audio Ready"
+            )
+
+            os.remove(result["file_path"])
+
+
+        # -------- BEST QUALITY --------
+        elif action == "fast":
+            await callback_query.message.edit_text("⚡ Getting Best Quality...")
+
+            result = download_video_sync(url)
+
+            if not result:
+                return await callback_query.message.edit_text("❌ Failed")
+
+            await client.send_video(
+                chat_id=callback_query.message.chat.id,
+                video=result["file_path"],
+                caption="⚡ Best Quality Downloaded"
+            )
+
+            os.remove(result["file_path"])
+
 
     except Exception:
-        await message.reply_text("❌ Invalid or unsupported link")
+        await callback_query.message.edit_text("❌ Error Occurred")
 
 
 # ------------------- CALLBACK HANDLER -------------------
