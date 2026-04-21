@@ -22,9 +22,8 @@ from adminpanel.logs.logs import setup_logs_handler
 
 # ------------------- FLASK SERVER -------------------
 
-web_app = Flask(__name__)
+# ------------------- FLASK SERVER -------------------
 
-# Setup minimal Flask server to prevent Heroku R10 error
 flask_app = Flask(__name__)
 
 @flask_app.route('/')
@@ -33,10 +32,15 @@ def index():
 
 def run_flask():
     port = int(os.environ.get("PORT", 5000))
-    flask_app.run(host="0.0.0.0", port=port)
+    flask_app.run(
+        host="0.0.0.0",
+        port=port,
+        debug=False,
+        use_reloader=False  # VERY IMPORTANT
+    )
 
-# Start Flask in background
-Thread(target=run_flask).start()
+# Run Flask in background (daemon thread)
+Thread(target=run_flask, daemon=True).start()
 
 # ------------------- PYROGRAM BOT -------------------
 
