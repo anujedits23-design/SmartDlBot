@@ -142,11 +142,18 @@ async def help_cmd(client, message):
 
 @app.on_message(filters.command("about"))
 async def about_cmd(client, message):
-    text = (
-        "<b>Smart Tool ⚙️</b>\n"
-        "Version: 3.0\n\n"
-        "Developer: @anujedits76\n"
-        "Library: Pyrogram"
+    about_message = (
+        "<b>Name:</b> Smart Tool ⚙️\n"
+        "<b>Version:</b> 3.0 (Beta Testing) 🛠\n\n"
+        "<b>Development Team:</b>\n"
+        "- <b>Creator:</b> <a href='https://t.me/anujedits76'>𝐀𝐧𝐮𝐣 👨‍💻</a>\n"
+        "<b>Technical Stack:</b>\n"
+        "- <b>Language:</b> Python 🐍\n"
+        "- <b>Libraries:</b> Aiogram, Pyrogram And Telethon 📚\n"
+        "- <b>Database:</b> MongoDB Database 🗄\n"
+        "- <b>Hosting:</b> Hostinger VPS 🌐\n\n"
+        "<b>About:</b> Smart Tool ⚙️ The ultimate toolkit on Telegram, offering Facebook,YouTube,Pinterest,Spotify Downloader. Simplify your tasks with ease!\n\n"
+        ">🔔 For Bot Update News: <a href='https://t.me/anujeditbyak'>Join Now</a>"
     )
 
     await message.reply_text(text, parse_mode=ParseMode.HTML)
@@ -203,11 +210,18 @@ async def help_menu(client, query: CallbackQuery):
 async def about_menu(client, query: CallbackQuery):
     await query.answer()
 
-    text = (
-        "<b>Smart Tool ⚙️</b>\n"
-        "Version: 3.0\n\n"
-        "Developer: @anujedits76\n"
-        "Library: Pyrogram"
+    about_message = (
+        "<b>Name:</b> Smart Tool ⚙️\n"
+        "<b>Version:</b> 3.0 (Beta Testing) 🛠\n\n"
+        "<b>Development Team:</b>\n"
+        "- <b>Creator:</b> <a href='https://t.me/anujedits76'>𝐀𝐧𝐮𝐣 👨‍💻</a>\n"
+        "<b>Technical Stack:</b>\n"
+        "- <b>Language:</b> Python 🐍\n"
+        "- <b>Libraries:</b> Aiogram, Pyrogram And Telethon 📚\n"
+        "- <b>Database:</b> MongoDB Database 🗄\n"
+        "- <b>Hosting:</b> Hostinger VPS 🌐\n\n"
+        "<b>About:</b> Smart Tool ⚙️ The ultimate toolkit on Telegram, offering Facebook,YouTube,Pinterest,Spotify Downloader. Simplify your tasks with ease!\n\n"
+        ">🔔 For Bot Update News: <a href='https://t.me/anujeditbyak'>Join Now</a>"
     )
 
     await query.message.edit_text(
