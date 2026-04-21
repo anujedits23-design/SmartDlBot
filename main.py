@@ -8,6 +8,8 @@ import os
 
 from config import API_ID, API_HASH, BOT_TOKEN
 
+from format import build_quality_ui
+
 # Import handlers
 from youtube.youtube import setup_downloader_handler
 from pinterest.pinterest import setup_pinterest_handler
@@ -51,6 +53,93 @@ app = Client(
     bot_token=BOT_TOKEN 
 )
 
+# ------------------- UNIVERSAL LINK HANDLER -------------------
+
+@app.on_message(filters.regex(r"^(https?://).+"))
+async def universal_downloader(client, message):
+    url = message.text.strip()
+
+    try:
+        markup = build_quality_ui(url)
+
+        await message.reply_text(
+            "📥 Select Quality 👇",
+            reply_markup=markup
+        )
+
+    except Exception:
+        await message.reply_text("❌ Invalid or unsupported link")
+
+
+# ------------------- CALLBACK HANDLER (MAIN ENGINE) -------------------
+
+@app.on_callback_query()
+async def quality_handler(client, callback_query: CallbackQuery):
+    data = callback_query.data
+    await callback_query.answer()
+
+    try:
+        # ---------------- VIDEO ----------------
+        if data.startswith("vid|"):
+            _, url, format_id = data.split("|")
+
+            await callback_query.message.edit_text("📥 Downloading Video...")
+
+            result = download_video_sync(url, format_id)
+
+            if not result:
+                await callback_query.message.edit_text("❌ Download Failed")
+                return
+
+            await client.send_video(
+                chat_id=callback_query.message.chat.id,
+                video=result["file_path"],
+                caption="🎬 Download Complete"
+            )
+
+            os.remove(result["file_path"])
+
+
+        # ---------------- AUDIO ----------------
+        elif data.startswith("audio|"):
+            _, url = data.split("|")
+
+            await callback_query.message.edit_text("🎵 Downloading Audio...")
+
+            result = download_audio_sync(url)
+
+            if not result:
+                await callback_query.message.edit_text("❌ Audio Failed")
+                return
+
+            await client.send_audio(
+                chat_id=callback_query.message.chat.id,
+                audio=result["file_path"],
+                caption="🎵 Audio Downloaded"
+            )
+
+            os.remove(result["file_path"])
+
+
+        # ---------------- FALLBACK ----------------
+        elif data.startswith("fast|"):
+            _, url = data.split("|")
+
+            await callback_query.message.edit_text("📥 Downloading Best Quality...")
+
+            result = download_video_sync(url)
+
+            await client.send_video(
+                chat_id=callback_query.message.chat.id,
+                video=result["file_path"],
+                caption="📥 Done"
+            )
+
+            os.remove(result["file_path"])
+
+    except Exception:
+        await callback_query.message.edit_text("❌ Error Occurred")
+        
 # Setup handlers
 setup_downloader_handler(app)
 setup_pinterest_handler(app)
