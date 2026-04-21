@@ -196,13 +196,14 @@ async def help_menu(client, query: CallbackQuery):
     ">🔔 For Bot Update News: <a href='https://t.me/anujeditbyak'>Join Now</a>"
 )
 
-    await query.message.edit_text(help_message, ...)
-        parse_mode=ParseMode.HTML,
-        reply_markup=InlineKeyboardMarkup([
-            [InlineKeyboardButton("🔙 Back", callback_data="start_menu")]
-        ])
-    )
-
+    await query.message.edit_text(
+    help_message,
+    parse_mode=ParseMode.HTML,
+    reply_markup=InlineKeyboardMarkup([
+        [InlineKeyboardButton("🔙 Back", callback_data="start_menu")]
+    ])
+)
+    
 # ------------------- BUTTON ABOUT -------------------
 
 @app.on_callback_query(filters.regex("about_me"))
@@ -223,12 +224,13 @@ async def about_menu(client, query: CallbackQuery):
         ">🔔 For Bot Update News: <a href='https://t.me/anujeditbyak'>Join Now</a>"
     )
 
-    await query.message.edit_text(about_message, ...)
-        parse_mode=ParseMode.HTML,
-        reply_markup=InlineKeyboardMarkup([
-            [InlineKeyboardButton("🔙 Back", callback_data="start_menu")]
-        ])
-    )
+    await query.message.edit_text(
+    about_message,
+    parse_mode=ParseMode.HTML,
+    reply_markup=InlineKeyboardMarkup([
+        [InlineKeyboardButton("🔙 Back", callback_data="start_menu")]
+    ])
+)
 
 # ------------------- BACK -------------------
 
