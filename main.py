@@ -9,19 +9,7 @@ import os
 from config import API_ID, API_HASH, BOT_TOKEN
 
 from format import build_quality_ui
-
 from youtube.youtube import download_video_sync, download_audio_sync
-
-# Import handlers
-from youtube.youtube import setup_downloader_handler
-from pinterest.pinterest import setup_pinterest_handler
-from facebook.facebook import setup_dl_handlers
-from spotify.spotify import setup_spotify_handler
-from instagram.instagram import setup_ig_handlers
-from tiktok.tiktok import setup_tt_handler
-from adminpanel.restart.restart import setup_restart_handler
-from adminpanel.admin.admin import setup_admin_handler
-from adminpanel.logs.logs import setup_logs_handler
 
 
 # ------------------- FLASK SERVER -------------------
