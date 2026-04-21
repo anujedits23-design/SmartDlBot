@@ -87,7 +87,7 @@ async def process_broadcast(client: Client, broadcast_msg: Message):
                 from_chat_id=broadcast_msg.chat.id,
                 message_id=broadcast_message_id,
                 reply_markup=InlineKeyboardMarkup(
-                    [[InlineKeyboardButton("Update Channel", url="https://t.me/Modvip_rm")]]
+                    [[InlineKeyboardButton("Update Channel", url="https://t.me/anujeditbyak")]]
                 )
             )
             total_users += 1
@@ -109,7 +109,7 @@ async def process_broadcast(client: Client, broadcast_msg: Message):
         f"**👥 To Users: {total_users}\n"
         f"🚫 Blocked: {blocked_users}**",
         reply_markup=InlineKeyboardMarkup(
-            [[InlineKeyboardButton("Update Channel", url="https://t.me/Modvip_rm")]]
+            [[InlineKeyboardButton("Update Channel", url="https://t.me/anujeditbyak")]]
         )
     )
 
@@ -139,7 +139,7 @@ async def stats_handler(client: Client, message: Message):
         f"- Users Registered: {total_users}**\n"
     )
 
-    keyboard = InlineKeyboardMarkup([[InlineKeyboardButton("🔔 Bot Updates", url="https://t.me/Modvip_rm")]])
+    keyboard = InlineKeyboardMarkup([[InlineKeyboardButton("🔔 Bot Updates", url="https://t.me/anujeditbyak")]])
     await message.reply_text(stats_text, parse_mode=ParseMode.MARKDOWN, reply_markup=keyboard, disable_web_page_preview=True)
 
 async def group_added_handler(client: Client, message: Message):
@@ -154,8 +154,8 @@ async def group_added_handler(client: Client, message: Message):
                 "Feel free to explore my features and let me know if you need any help! 😊**",
                 parse_mode=ParseMode.MARKDOWN,
                 reply_markup=InlineKeyboardMarkup([
-                    [InlineKeyboardButton("➕ Add Me", url="https://t.me/ItsSmartToolBot?startgroup=new&admin=post_messages+delete_messages+edit_messages+pin_messages+change_info+invite_users+promote_members"),
-                     InlineKeyboardButton("My Dev👨‍💻", user_id=7303810912)]
+                    [InlineKeyboardButton("➕ Add Me", url="https://t.me/social_media_downloader_ak_bot?startgroup=new&admin=post_messages+delete_messages+edit_messages+pin_messages+change_info+invite_users+promote_members"),
+                     InlineKeyboardButton("My Dev👨‍💻", user_id=7892805795)]
                 ])
             )
 
