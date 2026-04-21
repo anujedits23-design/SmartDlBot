@@ -262,6 +262,7 @@ async def back(client, query: CallbackQuery):
                 InlineKeyboardButton("ℹ️ About", callback_data="about_me")
             ]
         ])
+        disable_web_page_preview=True,
     )
 
 
