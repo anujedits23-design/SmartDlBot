@@ -25,7 +25,7 @@ def detect_platform(url: str):
 
 
 # ----------------------------
-# FETCH INFO (yt-dlp)
+# FETCH INFO
 # ----------------------------
 def fetch_info(url: str):
     ydl_opts = {
@@ -39,41 +39,42 @@ def fetch_info(url: str):
 
 
 # ----------------------------
-# FORMAT EXTRACTOR (REAL ONLY)
+# FORMAT EXTRACTOR (FIXED)
 # ----------------------------
 def extract_formats(info):
     formats = []
 
     for f in info.get("formats", []):
-        # video streams only
         if f.get("vcodec") != "none":
+
+            height = f.get("height") or 0
+
             formats.append({
                 "id": f.get("format_id"),
-                "res": f.get("height") or 0,
+                "res": height,
                 "ext": f.get("ext"),
-                "size": f.get("filesize") or 0
+                "size": f.get("filesize_approx") or f.get("filesize") or 0
             })
 
-    # remove duplicates
+    # remove duplicates safely
     seen = set()
     clean = []
 
     for f in sorted(formats, key=lambda x: x["res"], reverse=True):
-        key = f["res"]
-        if key not in seen:
-            seen.add(key)
+        if f["res"] not in seen:
+            seen.add(f["res"])
             clean.append(f)
 
     return clean
 
 
 # ----------------------------
-# UNIVERSAL BUTTON BUILDER
+# UNIVERSAL UI BUILDER
 # ----------------------------
 def build_quality_ui(url: str):
     platform = detect_platform(url)
 
-    # SPOTIFY → AUDIO ONLY
+    # Spotify → audio only
     if platform == "spotify":
         return InlineKeyboardMarkup([
             [InlineKeyboardButton("🎵 Download Audio", callback_data=f"audio|{url}")]
@@ -89,47 +90,36 @@ def build_quality_ui(url: str):
 
     buttons = []
 
-    # ----------------------------
-    # YOUTUBE → FULL QUALITY LIST
-    # ----------------------------
+    # ---------------- YOUTUBE ----------------
     if platform == "youtube":
         for f in formats[:10]:
             label = f"📹 {f['res']}p" if f["res"] else "📹 Unknown"
             buttons.append([
-                InlineKeyboardButton(
-                    label,
-                    callback_data=f"vid|{url}|{f['id']}"
-                )
+                InlineKeyboardButton(label, callback_data=f"vid|{url}|{f['id']}")
             ])
 
         buttons.append([
             InlineKeyboardButton("🎵 MP3 Audio", callback_data=f"audio|{url}")
         ])
 
-    # ----------------------------
-    # ALL OTHER PLATFORMS
-    # (Instagram / Facebook / TikTok / Pinterest)
-    # ----------------------------
+    # ---------------- OTHER PLATFORMS ----------------
     else:
         if formats:
             for f in formats[:6]:
                 label = f"📹 {f['res']}p" if f["res"] else "📥 Best Quality"
                 buttons.append([
-                    InlineKeyboardButton(
-                        label,
-                        callback_data=f"vid|{url}|{f['id']}"
-                    )
+                    InlineKeyboardButton(label, callback_data=f"vid|{url}|{f['id']}")
                 ])
         else:
             buttons.append([
-                InlineKeyboardButton("📥 Download Best Available", callback_data=f"fast|{url}")
+                InlineKeyboardButton("📥 Best Quality", callback_data=f"fast|{url}")
             ])
 
     return InlineKeyboardMarkup(buttons)
 
 
 # ----------------------------
-# SIMPLE HELPER
+# HELPER
 # ----------------------------
 def get_platform(url: str):
     return detect_platform(url)
