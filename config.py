@@ -19,3 +19,5 @@ if not COMMAND_PREFIX:
 SPOTIFY_CLIENT_ID = os.environ.get("SPOTIFY_CLIENT_ID", "5941bb8af55d4345rf97f616e325")
 SPOTIFY_CLIENT_SECRET = os.environ.get("SPOTIFY_CLIENT_SECRET", "408f04b237add2ba1b8bfc5da9eff8")
 
+# YouTube cookies file path (if required for yt-dlp or similar)
+YT_COOKIES_PATH = "./cookies/ItsSmartToolBot.txt"
