@@ -12,6 +12,7 @@ from pyrogram.enums import ParseMode
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+
 # ---------------- CONFIG ----------------
 class Config:
     TEMP_DIR = Path("temp")
@@ -22,7 +23,7 @@ Config.TEMP_DIR.mkdir(exist_ok=True)
 
 # ---------------- RATE LIMIT ----------------
 class RateLimiter:
-    def __init__(self, delay=2):
+    def __init__(self, delay=1.5):
         self.delay = delay
         self.last = 0
 
@@ -33,7 +34,37 @@ class RateLimiter:
         self.last = time.time()
 
 
-rate_limiter = RateLimiter(1.5)
+rate_limiter = RateLimiter()
+
+
+# ---------------- PROGRESS FUNCTION ----------------
+async def progress(current, total, message: Message, start_time):
+    if total == 0:
+        return
+
+    percent = int(current * 100 / total)
+
+    elapsed = time.time() - start_time
+    speed = current / elapsed if elapsed > 0 else 0
+
+    remaining = (total - current) / speed if speed > 0 else 0
+
+    bar_length = 10
+    filled = int(bar_length * percent / 100)
+    bar = "█" * filled + "░" * (bar_length - filled)
+
+    text = (
+        f"📥 Downloading...\n"
+        f"━━━━━━━━━━━━━━\n"
+        f"⚡ {percent}% [{bar}]\n"
+        f"🚀 Speed: {speed/1024/1024:.2f} MB/s\n"
+        f"⏳ ETA: {int(remaining)} sec"
+    )
+
+    try:
+        await message.edit_text(text)
+    except:
+        pass
 
 
 # ---------------- BOT CORE ----------------
@@ -45,7 +76,7 @@ class YouTubeBot:
         self.cache = {}
         self.search_cache = {}
 
-    # ---------------- SEARCH (FIXED) ----------------
+    # ---------------- SEARCH ----------------
     async def search(self, query: str):
 
         if query in self.search_cache:
@@ -70,10 +101,7 @@ class YouTubeBot:
             loop = asyncio.get_event_loop()
             info = await loop.run_in_executor(None, _run)
 
-            if not info:
-                return None
-
-            entries = info.get("entries") or []
+            entries = (info or {}).get("entries") or []
 
             for e in entries:
                 if e and e.get("webpage_url"):
@@ -86,7 +114,7 @@ class YouTubeBot:
 
         return None
 
-    # ---------------- FORMAT LIST ----------------
+    # ---------------- FORMATS ----------------
     def formats(self, url):
 
         if url in self.cache:
@@ -121,19 +149,42 @@ class YouTubeBot:
         return clean[:8]
 
     # ---------------- DOWNLOAD ----------------
-    async def download(self, url, format_id):
+    async def download(self, url, format_id, status_msg=None):
 
         await rate_limiter.wait()
 
         def _dl():
+            start = time.time()
+            loop = asyncio.get_event_loop()
+            last_update = 0
+
+            def hook(d):
+                nonlocal last_update
+
+                if d.get('status') == 'downloading':
+                    now = time.time()
+
+                    if now - last_update < 1:
+                        return
+
+                    last_update = now
+
+                    downloaded = d.get('downloaded_bytes', 0)
+                    total = d.get('total_bytes') or d.get('total_bytes_estimate') or 0
+
+                    asyncio.run_coroutine_threadsafe(
+                        progress(downloaded, total, status_msg, start),
+                        loop
+                    )
+
             opts = {
                 'format': format_id,
                 'outtmpl': str(self.temp_dir / '%(title)s.%(ext)s'),
                 'merge_output_format': 'mp4',
                 'quiet': True,
+                'progress_hooks': [hook],
                 'retries': 10,
                 'fragment_retries': 10,
-                'concurrent_fragment_downloads': 3
             }
 
             if os.path.exists(Config.COOKIES_FILE):
@@ -154,7 +205,6 @@ ytbot = YouTubeBot(Config.TEMP_DIR)
 # ---------------- HANDLERS ----------------
 def setup_handlers(app: Client):
 
-    # ================= /yt =================
     @app.on_message(filters.command("yt"))
     async def yt(client: Client, message: Message):
 
@@ -163,7 +213,7 @@ def setup_handlers(app: Client):
 
         query = message.text.split(maxsplit=1)[1]
 
-        status = await message.reply("🔍 Searching video... 🎬")
+        status = await message.reply("🔍 Searching... 🎬")
 
         url = query if query.startswith("http") else await ytbot.search(query)
 
@@ -184,45 +234,11 @@ def setup_handlers(app: Client):
         ]
 
         await status.edit(
-            "🎬 **Select Quality 👇**",
+            "🎬 Select Quality 👇",
             reply_markup=InlineKeyboardMarkup(buttons)
         )
 
-    # ================= /song =================
-    @app.on_message(filters.command("song"))
-    async def song(client: Client, message: Message):
-
-        if len(message.command) < 2:
-            return await message.reply("❌ Send song name or link")
-
-        query = message.text.split(maxsplit=1)[1]
-
-        status = await message.reply("🎧 Searching song... 🎶")
-
-        url = query if query.startswith("http") else await ytbot.search(query)
-
-        if not url:
-            return await status.edit("❌ No Song Found 😢")
-
-        file, title = await ytbot.download(url, "bestaudio")
-
-        caption = f"""
-🎵 **{title}** 🎶
-━━━━━━━━━━━━━━
-✨ Downloaded Successfully 💥
-"""
-
-        await client.send_audio(
-            chat_id=message.chat.id,
-            audio=file,
-            caption=caption,
-            parse_mode=ParseMode.MARKDOWN
-        )
-
-        os.remove(file)
-        await status.delete()
-
-    # ================= CALLBACK =================
+    # ---------------- CALLBACK ----------------
     @app.on_callback_query(filters.regex("^yt\\|"))
     async def callback(client: Client, query: CallbackQuery):
 
@@ -233,23 +249,30 @@ def setup_handlers(app: Client):
         if not url:
             return await query.message.edit("❌ Session expired")
 
+        status_msg = query.message
+
         await query.message.edit("📥 Downloading... 🎬")
 
-        file, title = await ytbot.download(url, format_id)
+        file, title = await ytbot.download(url, format_id, status_msg)
 
-        caption = f"""
-🎬 **{title}**
-━━━━━━━━━━━━━━
-⚡ Quality Selected 🎥
-🔥 Downloaded Successfully 💥
-"""
+        if not file:
+            return await query.message.edit("❌ Download Failed 😢")
 
         await client.send_video(
             chat_id=query.message.chat.id,
             video=file,
-            caption=caption,
+            caption=f"🎬 **{title}**\n🔥 Downloaded Successfully",
             parse_mode=ParseMode.MARKDOWN
         )
 
-        os.remove(file)
+        try:
+            os.remove(file)
+        except:
+            pass
+
         await query.message.delete()
+
+
+# ---------------- INIT WRAPPER ----------------
+def setup_downloader_handler(app: Client):
+    setup_handlers(app)
