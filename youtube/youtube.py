@@ -329,11 +329,11 @@ def prepare_thumbnail_sync(thumbnail_url: str, output_path: str) -> str:
 
 async def search_youtube(query: str) -> Optional[str]:
     ydl_opts = {
-        'quiet': True,
-        'no_warnings': True,
-        'cookiefile': YT_COOKIES_PATH,
-        'default_search': 'ytsearch10',
-        'ignoreerrors': True,
+        "quiet": True,
+        "no_warnings": True,
+        "cookiefile": YT_COOKIES_PATH,
+        "ignoreerrors": True,
+        "default_search": "ytsearch10",
     }
 
     try:
@@ -341,7 +341,7 @@ async def search_youtube(query: str) -> Optional[str]:
 
         def run():
             with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-                return ydl.extract_info(f"ytsearch10:{query}", download=False)
+                return ydl.extract_info(query, download=False)
 
         info = await loop.run_in_executor(executor, run)
 
@@ -354,34 +354,17 @@ async def search_youtube(query: str) -> Optional[str]:
             if not e:
                 continue
 
-            url = (
-                e.get("webpage_url")
-                or e.get("url")
-                or (f"https://www.youtube.com/watch?v={e.get('id')}" if e.get("id") else None)
-            )
+            video_id = e.get("id")
+            if video_id:
+                return f"https://www.youtube.com/watch?v={video_id}"
 
-            if url:
-                return url
-
-        return None
-
-    except Exception as e:
-        print(f"YouTube search error: {e}")
-        return None
-
-        entries = info.get("entries") if isinstance(info, dict) else None
-
-        if not entries:
-            return None
-
-        for e in entries:
-            if e and e.get("webpage_url"):
+            if e.get("webpage_url"):
                 return e["webpage_url"]
 
         return None
 
     except Exception as e:
-        print(f"YouTube search error: {e}")
+        print("Search error:", e)
         return None
 
         entries = info.get("entries") if isinstance(info, dict) else None
