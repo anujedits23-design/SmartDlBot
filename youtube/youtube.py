@@ -340,27 +340,29 @@ def prepare_thumbnail_sync(thumbnail_url: str, output_path: str) -> str:
     return None
 
 async def search_youtube(query: str) -> Optional[str]:
-    """
-    Search YouTube for the first video result matching the query.
-    """
     ydl_opts = {
-        'format': 'bestaudio/best',
         'default_search': 'ytsearch5:',
-        'nooverwrites': True,
-        'cookiefile': YT_COOKIES_PATH,
-        'no_warnings': True,
         'quiet': True,
-        'no_color': True,
-        'simulate': True,
+        'cookiefile': YT_COOKIES_PATH,
     }
 
     try:
-        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-            info = await asyncio.get_event_loop().run_in_executor(executor, ydl.extract_info, query, False)
-            ifif 'entries' in info and info['entries']:
-    for entry in info['entries']:
-        if entry and entry.get('webpage_url'):
-            return entry['webpage_url']
+        loop = asyncio.get_event_loop()
+
+        def run_search():
+            with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+                return ydl.extract_info(query, download=False)
+
+        info = await loop.run_in_executor(executor, run_search)
+
+        entries = info.get('entries', [])
+        if not entries:
+            return None
+
+        for entry in entries:
+            if entry and entry.get('webpage_url'):
+                return entry['webpage_url']
+
     except Exception as e:
         logger.error(f"YouTube search error: {e}")
 
