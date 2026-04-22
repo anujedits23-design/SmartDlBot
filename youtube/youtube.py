@@ -303,6 +303,22 @@ async def search_youtube(query: str) -> Optional[str]:
         if not info:
             return None
 
+    from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton
+
+    def video_buttons(url):
+    return InlineKeyboardMarkup([
+        [
+            InlineKeyboardButton("🎬 Video 360p", callback_data=f"vid|360|{url}"),
+            InlineKeyboardButton("🎬 Video 720p", callback_data=f"vid|720|{url}")
+        ],
+        [
+            InlineKeyboardButton("🎬 Video 1080p", callback_data=f"vid|1080|{url}")
+        ],
+        [
+            InlineKeyboardButton("🎧 MP3", callback_data=f"mp3|{url}")
+        ]
+    ])
+        
         entries = info.get("entries") if isinstance(info, dict) else None
 
         if not entries:
