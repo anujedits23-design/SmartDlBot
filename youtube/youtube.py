@@ -19,24 +19,6 @@ from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 YT_COOKIES_PATH = "cookies.txt"
 
 
-@app.on_callback_query()
-async def callback_handler(client, callback_query):
-    data = callback_query.data
-
-def video_buttons(url):
-    return InlineKeyboardMarkup([
-        [
-            InlineKeyboardButton("🎬 360p", callback_data=f"vid|360|{url}"),
-            InlineKeyboardButton("🎬 720p", callback_data=f"vid|720|{url}")
-        ],
-        [
-            InlineKeyboardButton("🎬 1080p", callback_data=f"vid|1080|{url}")
-        ],
-        [
-            InlineKeyboardButton("🎧 MP3", callback_data=f"mp3|{url}")
-        ]
-    ])
-
 # Configure logging
 logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
@@ -58,6 +40,45 @@ class Config:
 Config.TEMP_DIR.mkdir(exist_ok=True)
 
 executor = ThreadPoolExecutor()
+
+# ---------------- BUTTONS ---------------- #
+
+def video_buttons(url):
+    return InlineKeyboardMarkup([
+        [
+            InlineKeyboardButton("🎬 360p", callback_data=f"vid|360|{url}"),
+            InlineKeyboardButton("🎬 720p", callback_data=f"vid|720|{url}")
+        ],
+        [
+            InlineKeyboardButton("🎬 1080p", callback_data=f"vid|1080|{url}")
+        ],
+        [
+            InlineKeyboardButton("🎧 MP3", callback_data=f"mp3|{url}")
+        ]
+    ])
+
+@app.on_callback_query()
+async def callback_handler(client, callback_query):
+    data = callback_query.data
+
+    try:
+        if data.startswith("vid"):
+            _, quality, url = data.split("|")
+
+            await callback_query.answer(f"Downloading {quality}p...")
+
+            await handle_download_request(client, callback_query.message, url)
+
+        elif data.startswith("mp3"):
+            _, url = data.split("|")
+
+            await callback_query.answer("Downloading MP3...")
+
+            await handle_audio_request(client, callback_query.message, url)
+
+    except Exception as e:
+        await callback_query.answer("Error occurred ❌", show_alert=True)
+        print(e)
 
 def sanitize_filename(title: str) -> str:
     """
