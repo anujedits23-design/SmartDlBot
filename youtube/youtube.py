@@ -129,45 +129,47 @@ def get_ydl_opts(output_filename: str) -> dict:
         'format': 'bestvideo[height<=720]+bestaudio/best',
         'outtmpl': output_filename,
         'cookiefile': YT_COOKIES_PATH,
+
         'quiet': True,
         'nocheckcertificate': True,
         'noprogress': True,
         'no_warnings': True,
 
-        # 🔥 FIX
+        # 🔥 FIX (important order + priority)
         'extractor_args': {
             'youtube': {
-                'player_client': ['android', 'web']
+                'player_client': ['android', 'ios', 'web']
             }
         },
 
-        # 🔥 spoof
+        # 🔥 anti bot stability
         'http_headers': {
-            'User-Agent': 'Mozilla/5.0'
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'
         },
 
         'retries': 5,
         'fragment_retries': 5,
+        'concurrent_fragment_downloads': 1,
 
         'postprocessors': [
             {'key': 'FFmpegVideoConvertor', 'preferedformat': 'mp4'}
         ]
     }
-    
+
 def get_audio_opts(output_filename: str) -> dict:
     return {
         'format': 'bestaudio/best',
         'outtmpl': f'{output_filename}.%(ext)s',
         'cookiefile': YT_COOKIES_PATH,
+
         'quiet': True,
         'nocheckcertificate': True,
         'noprogress': True,
         'no_warnings': True,
 
-        # 🔥 FIX
         'extractor_args': {
             'youtube': {
-                'player_client': ['android', 'web']
+                'player_client': ['android', 'ios', 'web']
             }
         },
 
@@ -177,6 +179,7 @@ def get_audio_opts(output_filename: str) -> dict:
 
         'retries': 5,
         'fragment_retries': 5,
+        'concurrent_fragment_downloads': 1,
 
         'postprocessors': [{
             'key': 'FFmpegExtractAudio',
