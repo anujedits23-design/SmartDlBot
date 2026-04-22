@@ -125,39 +125,66 @@ async def progress_bar(current, total, status_message, start_time, last_update_t
         logger.error(f"Error updating progress: {e}")
 
 def get_ydl_opts(output_filename: str) -> dict:
-    """
-    Return yt-dlp options.
-    """
     return {
-        'format': 'bestvideo[height<=720][width=1280][ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]',
+        'format': 'bestvideo[height<=720]+bestaudio/best',
         'outtmpl': output_filename,
         'cookiefile': YT_COOKIES_PATH,
         'quiet': True,
+        'nocheckcertificate': True,
         'noprogress': True,
         'no_warnings': True,
-        'nocheckcertificate': True,
-        'postprocessors': [{'key': 'FFmpegVideoConvertor', 'preferedformat': 'mp4'}]
-    }
 
+        # 🔥 FIX
+        'extractor_args': {
+            'youtube': {
+                'player_client': ['android', 'web']
+            }
+        },
+
+        # 🔥 spoof
+        'http_headers': {
+            'User-Agent': 'Mozilla/5.0'
+        },
+
+        'retries': 5,
+        'fragment_retries': 5,
+
+        'postprocessors': [
+            {'key': 'FFmpegVideoConvertor', 'preferedformat': 'mp4'}
+        ]
+    }
+    
 def get_audio_opts(output_filename: str) -> dict:
-    """
-    Return yt-dlp options for audio download.
-    """
     return {
         'format': 'bestaudio/best',
         'outtmpl': f'{output_filename}.%(ext)s',
         'cookiefile': YT_COOKIES_PATH,
         'quiet': True,
+        'nocheckcertificate': True,
         'noprogress': True,
         'no_warnings': True,
-        'nocheckcertificate': True,
+
+        # 🔥 FIX
+        'extractor_args': {
+            'youtube': {
+                'player_client': ['android', 'web']
+            }
+        },
+
+        'http_headers': {
+            'User-Agent': 'Mozilla/5.0'
+        },
+
+        'retries': 5,
+        'fragment_retries': 5,
+
         'postprocessors': [{
             'key': 'FFmpegExtractAudio',
             'preferredcodec': 'mp3',
             'preferredquality': '192',
         }]
     }
-
+    
 def download_video_sync(url: str) -> tuple:
     """
     Download a video using yt-dlp, along with its thumbnail.
