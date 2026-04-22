@@ -151,14 +151,27 @@ def get_ydl_opts(output_filename: str) -> dict:
     Return yt-dlp options.
     """
     return {
-        'format': 'bestvideo[height<=720][width=1280][ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]',
+        'format': 'bestvideo[height<=720]+bestaudio/best[height<=720]/best',
         'outtmpl': output_filename,
         'cookiefile': YT_COOKIES_PATH,
         'quiet': True,
         'noprogress': True,
         'no_warnings': True,
         'nocheckcertificate': True,
-        'postprocessors': [{'key': 'FFmpegVideoConvertor', 'preferedformat': 'mp4'}]
+
+        # 🔥 IMPORTANT FIXES
+        'merge_output_format': 'mp4',
+        'retries': 3,
+        'fragment_retries': 3,
+        'continuedl': True,
+        'ignoreerrors': False,
+
+        'postprocessors': [
+            {
+                'key': 'FFmpegVideoConvertor',
+                'preferedformat': 'mp4'
+            }
+        ]
     }
 
 def get_audio_opts(output_filename: str) -> dict:
