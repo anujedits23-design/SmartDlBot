@@ -281,7 +281,7 @@ async def search_youtube(query: str) -> Optional[str]:
     """
     ydl_opts = {
         'format': 'bestaudio/best',
-        'default_search': 'ytsearch1:',
+        'default_search': 'ytsearch10',
         'nooverwrites': True,
         'cookiefile': YT_COOKIES_PATH,
         'no_warnings': True,
@@ -291,14 +291,32 @@ async def search_youtube(query: str) -> Optional[str]:
     }
 
     try:
-        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-            info = await asyncio.get_event_loop().run_in_executor(executor, ydl.extract_info, query, False)
-            if 'entries' in info and info['entries']:
-                return info['entries'][0]['webpage_url']
+        loop = asyncio.get_event_loop()
+
+        def run():
+            with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+                return ydl.extract_info(query, download=False)
+
+        info = await loop.run_in_executor(executor, run)
+
+        # SAFE CHECK FIX (MAIN ERROR SOLVE)
+        if not info:
+            return None
+
+        entries = info.get("entries") if isinstance(info, dict) else None
+
+        if not entries:
+            return None
+
+        for e in entries:
+            if e and e.get("webpage_url"):
+                return e["webpage_url"]
+
+        return None
+
     except Exception as e:
         print(f"YouTube search error: {e}")
-
-    return None
+        return None
 
 async def handle_download_request(client, message, query):
     search_message = await client.send_message(
