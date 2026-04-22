@@ -345,7 +345,7 @@ async def search_youtube(query: str) -> Optional[str]:
     """
     ydl_opts = {
         'format': 'bestaudio/best',
-        'default_search': 'ytsearch1:',
+        'default_search': 'ytsearch5:',
         'nooverwrites': True,
         'cookiefile': YT_COOKIES_PATH,
         'no_warnings': True,
@@ -357,8 +357,10 @@ async def search_youtube(query: str) -> Optional[str]:
     try:
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             info = await asyncio.get_event_loop().run_in_executor(executor, ydl.extract_info, query, False)
-            if 'entries' in info and info['entries']:
-                return info['entries'][0]['webpage_url']
+            ifif 'entries' in info and info['entries']:
+    for entry in info['entries']:
+        if entry and entry.get('webpage_url'):
+            return entry['webpage_url']
     except Exception as e:
         logger.error(f"YouTube search error: {e}")
 
