@@ -18,6 +18,21 @@ from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 
 YT_COOKIES_PATH = "cookies.txt"
 
+
+def video_buttons(url):
+    return InlineKeyboardMarkup([
+        [
+            InlineKeyboardButton("🎬 360p", callback_data=f"vid|360|{url}"),
+            InlineKeyboardButton("🎬 720p", callback_data=f"vid|720|{url}")
+        ],
+        [
+            InlineKeyboardButton("🎬 1080p", callback_data=f"vid|1080|{url}")
+        ],
+        [
+            InlineKeyboardButton("🎧 MP3", callback_data=f"mp3|{url}")
+        ]
+    ])
+
 # Configure logging
 logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
@@ -178,20 +193,6 @@ def download_video_sync(url: str) -> tuple:
         if file_size > 2_000_000_000:
             os.remove(output_path)
             return None, "Video file exceeds Telegram's 2GB limit."
-
-            def video_buttons(url):
-    return InlineKeyboardMarkup([
-        [
-            InlineKeyboardButton("🎬 360p", callback_data=f"vid|360|{url}"),
-            InlineKeyboardButton("🎬 720p", callback_data=f"vid|720|{url}")
-        ],
-        [
-            InlineKeyboardButton("🎬 1080p", callback_data=f"vid|1080|{url}")
-        ],
-        [
-            InlineKeyboardButton("🎧 MP3", callback_data=f"mp3|{url}")
-        ]
-    ])
 
         # Download and prepare thumbnail
         thumbnail_path = None
