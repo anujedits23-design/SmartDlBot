@@ -12,7 +12,6 @@ from pyrogram.enums import ParseMode
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-
 # ---------------- CONFIG ----------------
 class Config:
     TEMP_DIR = Path("temp")
@@ -34,7 +33,7 @@ class RateLimiter:
         self.last = time.time()
 
 
-rate_limiter = RateLimiter(2)
+rate_limiter = RateLimiter(1.5)
 
 
 # ---------------- BOT CORE ----------------
@@ -46,7 +45,7 @@ class YouTubeBot:
         self.cache = {}
         self.search_cache = {}
 
-    # ---------------- SEARCH ----------------
+    # ---------------- SEARCH (FIXED) ----------------
     async def search(self, query: str):
 
         if query in self.search_cache:
@@ -71,12 +70,16 @@ class YouTubeBot:
             loop = asyncio.get_event_loop()
             info = await loop.run_in_executor(None, _run)
 
-            entries = info.get("entries", []) if info else []
+            if not info:
+                return None
+
+            entries = info.get("entries") or []
 
             for e in entries:
                 if e and e.get("webpage_url"):
-                    self.search_cache[query] = e["webpage_url"]
-                    return e["webpage_url"]
+                    url = e["webpage_url"]
+                    self.search_cache[query] = url
+                    return url
 
         except Exception as e:
             logger.error(f"Search error: {e}")
@@ -204,7 +207,7 @@ def setup_handlers(app: Client):
         file, title = await ytbot.download(url, "bestaudio")
 
         caption = f"""
-🎵 **{title}**
+🎵 **{title}** 🎶
 ━━━━━━━━━━━━━━
 ✨ Downloaded Successfully 💥
 """
@@ -237,8 +240,8 @@ def setup_handlers(app: Client):
         caption = f"""
 🎬 **{title}**
 ━━━━━━━━━━━━━━
-⚡ Quality Selected
-🔥 Downloaded Successfully
+⚡ Quality Selected 🎥
+🔥 Downloaded Successfully 💥
 """
 
         await client.send_video(
