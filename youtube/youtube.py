@@ -341,7 +341,7 @@ async def search_youtube(query: str) -> Optional[str]:
 
         def run():
             with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-                return ydl.extract_info(query, download=False)
+                return ydl.extract_info(f"ytsearch10:{query}", download=False)
 
         info = await loop.run_in_executor(executor, run)
 
@@ -364,22 +364,7 @@ async def search_youtube(query: str) -> Optional[str]:
         return None
 
     except Exception as e:
-        print("Search error:", e)
-        return None
-
-        entries = info.get("entries") if isinstance(info, dict) else None
-
-        if not entries:
-            return None
-
-        for e in entries:
-            if e and e.get("webpage_url"):
-                return e["webpage_url"]
-
-        return None
-
-    except Exception as e:
-        print(f"YouTube search error: {e}")
+        print("YouTube search error:", e)
         return None
 
         entries = info.get("entries") if isinstance(info, dict) else None
