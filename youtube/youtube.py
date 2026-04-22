@@ -319,6 +319,7 @@ async def search_youtube(query: str) -> Optional[str]:
         'quiet': True,
         'no_warnings': True,
         'cookiefile': YT_COOKIES_PATH,
+        'default_search': 'ytsearch10',
     }
 
     try:
@@ -326,22 +327,28 @@ async def search_youtube(query: str) -> Optional[str]:
 
         def run():
             with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-                return ydl.extract_info(f"ytsearch5:{query}", download=False)
+                return ydl.extract_info(query, download=False)
 
         info = await loop.run_in_executor(executor, run)
 
         if not info:
             return None
 
-        entries = info.get("entries", [])
+        entries = info.get("entries") or []
+
         for e in entries:
-            if e and e.get("webpage_url"):
-                return e["webpage_url"]
+            if not e:
+                continue
+
+            # best possible URL extraction
+            url = e.get("webpage_url") or e.get("url")
+            if url:
+                return url
 
         return None
 
     except Exception as e:
-        print(f"Search error: {e}")
+        print(f"YouTube search error: {e}")
         return None
 
         entries = info.get("entries") if isinstance(info, dict) else None
