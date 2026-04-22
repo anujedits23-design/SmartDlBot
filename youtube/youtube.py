@@ -353,6 +353,36 @@ async def search_youtube(query: str) -> Optional[str]:
         print(f"YouTube search error: {e}")
         return None
 
+        entries = info.get("entries") if isinstance(info, dict) else None
+
+        if not entries:
+            return None
+
+        for e in entries:
+            if e and e.get("webpage_url"):
+                return e["webpage_url"]
+
+        return None
+
+    except Exception as e:
+        print(f"YouTube search error: {e}")
+        return None
+
+        entries = info.get("entries") if isinstance(info, dict) else None
+
+        if not entries:
+            return None
+
+        for e in entries:
+            if e and e.get("webpage_url"):
+                return e["webpage_url"]
+
+        return None
+
+    except Exception as e:
+        print(f"YouTube search error: {e}")
+        return None
+
     try:
         loop = asyncio.get_event_loop()
 
@@ -365,8 +395,6 @@ async def search_youtube(query: str) -> Optional[str]:
         # SAFE CHECK FIX (MAIN ERROR SOLVE)
         if not info:
             return None
-
-    from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 
         
         entries = info.get("entries") if isinstance(info, dict) else None
