@@ -57,28 +57,26 @@ def video_buttons(url):
         ]
     ])
 
-@app.on_callback_query()
-async def callback_handler(client, callback_query):
-    data = callback_query.data
+def setup_downloader_handler(app: Client):
 
-    try:
-        if data.startswith("vid"):
-            _, quality, url = data.split("|")
+    @app.on_callback_query()
+    async def callback_handler(client, callback_query):
+        data = callback_query.data
 
-            await callback_query.answer(f"Downloading {quality}p...")
+        try:
+            if data.startswith("vid"):
+                _, quality, url = data.split("|")
+                await callback_query.answer(f"Downloading {quality}p...")
+                await handle_download_request(client, callback_query.message, url)
 
-            await handle_download_request(client, callback_query.message, url)
+            elif data.startswith("mp3"):
+                _, url = data.split("|")
+                await callback_query.answer("Downloading MP3...")
+                await handle_audio_request(client, callback_query.message, url)
 
-        elif data.startswith("mp3"):
-            _, url = data.split("|")
-
-            await callback_query.answer("Downloading MP3...")
-
-            await handle_audio_request(client, callback_query.message, url)
-
-    except Exception as e:
-        await callback_query.answer("Error occurred ❌", show_alert=True)
-        print(e)
+        except Exception as e:
+            await callback_query.answer("Error ❌", show_alert=True)
+            print(e)
 
 def sanitize_filename(title: str) -> str:
     """
@@ -317,9 +315,6 @@ def prepare_thumbnail_sync(thumbnail_url: str, output_path: str) -> str:
     return None
 
 async def search_youtube(query: str) -> Optional[str]:
-    """
-    Search YouTube for the first video result matching the query.
-    """
     ydl_opts = {
         'format': 'bestaudio/best',
         'default_search': 'ytsearch10',
@@ -330,6 +325,33 @@ async def search_youtube(query: str) -> Optional[str]:
         'no_color': True,
         'simulate': True,
     }
+
+    try:
+        loop = asyncio.get_event_loop()
+
+        def run():
+            with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+                return ydl.extract_info(query, download=False)
+
+        info = await loop.run_in_executor(executor, run)
+
+        if not info:
+            return None
+
+        entries = info.get("entries") if isinstance(info, dict) else None
+
+        if not entries:
+            return None
+
+        for e in entries:
+            if e and e.get("webpage_url"):
+                return e["webpage_url"]
+
+        return None
+
+    except Exception as e:
+        print(f"YouTube search error: {e}")
+        return None
 
     try:
         loop = asyncio.get_event_loop()
