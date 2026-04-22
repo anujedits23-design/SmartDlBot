@@ -19,6 +19,10 @@ from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 YT_COOKIES_PATH = "cookies.txt"
 
 
+@app.on_callback_query()
+async def callback_handler(client, callback_query):
+    data = callback_query.data
+
 def video_buttons(url):
     return InlineKeyboardMarkup([
         [
