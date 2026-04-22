@@ -316,14 +316,9 @@ def prepare_thumbnail_sync(thumbnail_url: str, output_path: str) -> str:
 
 async def search_youtube(query: str) -> Optional[str]:
     ydl_opts = {
-        'format': 'bestaudio/best',
-        'default_search': 'ytsearch10',
-        'nooverwrites': True,
-        'cookiefile': YT_COOKIES_PATH,
-        'no_warnings': True,
         'quiet': True,
-        'no_color': True,
-        'simulate': True,
+        'no_warnings': True,
+        'cookiefile': YT_COOKIES_PATH,
     }
 
     try:
@@ -331,12 +326,23 @@ async def search_youtube(query: str) -> Optional[str]:
 
         def run():
             with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-                return ydl.extract_info(query, download=False)
+                return ydl.extract_info(f"ytsearch5:{query}", download=False)
 
         info = await loop.run_in_executor(executor, run)
 
         if not info:
             return None
+
+        entries = info.get("entries", [])
+        for e in entries:
+            if e and e.get("webpage_url"):
+                return e["webpage_url"]
+
+        return None
+
+    except Exception as e:
+        print(f"Search error: {e}")
+        return None
 
         entries = info.get("entries") if isinstance(info, dict) else None
 
