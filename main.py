@@ -263,13 +263,9 @@ async def back(client, query: CallbackQuery):
                 InlineKeyboardButton("⚙️ Help", callback_data="help_menu"),
                 InlineKeyboardButton("ℹ️ About", callback_data="about_me")
             ]
-        ]),
-        disable_web_page_preview=True,
-    )
-
-# ------------------- INIT WRAPPER -------------------
-def setup_downloader_handler(app: Client):
-    setup_handlers(app)
+    ]),
+    disable_web_page_preview=True,
+)
 
 # Final confirmation that the bot has started
 print("✅ Bot Successfully Started and Flask is running on Heroku.")
