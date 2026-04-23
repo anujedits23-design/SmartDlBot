@@ -1,278 +1,492 @@
 import os
-import time
-import asyncio
 import logging
 from pathlib import Path
-
+from typing import Optional
 import yt_dlp
+import asyncio
+import aiofiles
 from pyrogram import Client, filters
-from pyrogram.types import Message, InlineKeyboardMarkup, InlineKeyboardButton, CallbackQuery
+from pyrogram.types import Message
 from pyrogram.enums import ParseMode
+import re
+import math
+import time
+import requests
+from PIL import Image
+from concurrent.futures import ThreadPoolExecutor
 
-logging.basicConfig(level=logging.INFO)
+YT_COOKIES_PATH = "cookies.txt"
+
+# Configure logging
+logging.basicConfig(
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    level=logging.INFO
+)
 logger = logging.getLogger(__name__)
 
-
-# ---------------- CONFIG ----------------
+# Configuration
 class Config:
     TEMP_DIR = Path("temp")
-    COOKIES_FILE = "cookies.txt"
+    HEADERS = {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+        'Accept-Language': 'en-US,en;q=0.5',
+        'Connection': 'keep-alive',
+        'Referer': 'https://www.pinterest.com/',
+    }
 
 Config.TEMP_DIR.mkdir(exist_ok=True)
 
+executor = ThreadPoolExecutor()
 
-# ---------------- RATE LIMIT ----------------
-class RateLimiter:
-    def __init__(self, delay=1.5):
-        self.delay = delay
-        self.last = 0
+def sanitize_filename(title: str) -> str:
+    """
+    Sanitize file name by removing invalid characters.
+    """
+    title = re.sub(r'[<>:"/\\|?*]', '', title)
+    title = title.replace(' ', '_')
+    return f"{title[:50]}_{int(time.time())}"
 
-    async def wait(self):
-        now = time.time()
-        if now - self.last < self.delay:
-            await asyncio.sleep(self.delay - (now - self.last))
-        self.last = time.time()
+def validate_url(url: str) -> bool:
+    """
+    Validate if the provided URL is a valid YouTube link.
+    """
+    return url.startswith(('https://www.youtube.com/', 'https://youtube.com/', 'https://youtu.be/'))
 
+def format_size(size_bytes: int) -> str:
+    """
+    Format file size into human-readable string.
+    """
+    if size_bytes == 0:
+        return "0B"
+    size_name = ("B", "KB", "MB", "GB")
+    i = int(math.floor(math.log(size_bytes, 1024)))
+    p = math.pow(1024, i)
+    s = round(size_bytes / p, 2)
+    return f"{s} {size_name[i]}"
 
-rate_limiter = RateLimiter()
+def format_duration(seconds: int) -> str:
+    """
+    Format video duration into human-readable string.
+    """
+    hours = seconds // 3600
+    minutes = (seconds % 3600) // 60
+    seconds = seconds % 60
+    if hours > 0:
+        return f"{hours}h {minutes}m {seconds}s"
+    elif minutes > 0:
+        return f"{minutes}m {seconds}s"
+    else:
+        return f"{seconds}s"
 
+async def progress_bar(current, total, status_message, start_time, last_update_time):
+    """
+    Display a progress bar for uploads.
+    """
+    elapsed_time = time.time() - start_time
+    percentage = (current / total) * 100
+    progress = "▓" * int(percentage // 5) + "░" * (20 - int(percentage // 5))
+    speed = current / elapsed_time / 1024 / 1024  # Speed in MB/s
+    uploaded = current / 1024 / 1024  # Uploaded size in MB
+    total_size = total / 1024 / 1024  # Total size in MB
 
-# ---------------- PROGRESS FUNCTION ----------------
-async def progress(current, total, message: Message, start_time):
-    if total == 0:
+    # Throttle updates: Only update if at least 2 seconds have passed since the last update
+    if time.time() - last_update_time[0] < 2:
         return
-
-    percent = int(current * 100 / total)
-
-    elapsed = time.time() - start_time
-    speed = current / elapsed if elapsed > 0 else 0
-
-    remaining = (total - current) / speed if speed > 0 else 0
-
-    bar_length = 10
-    filled = int(bar_length * percent / 100)
-    bar = "█" * filled + "░" * (bar_length - filled)
+    last_update_time[0] = time.time()  # Update the last update time
 
     text = (
-        f"📥 Downloading...\n"
-        f"━━━━━━━━━━━━━━\n"
-        f"⚡ {percent}% [{bar}]\n"
-        f"🚀 Speed: {speed/1024/1024:.2f} MB/s\n"
-        f"⏳ ETA: {int(remaining)} sec"
+        f"**📥 Upload Progress 📥**\n\n"
+        f"{progress}\n\n"
+        f"**🚧 Percentage:** {percentage:.2f}%\n"
+        f"**⚡️ Speed:** {speed:.2f} MB/s\n"
+        f"**📶 Uploaded:** {uploaded:.2f} MB of {total_size:.2f} MB"
     )
+    try:
+        await status_message.edit(text)
+    except Exception as e:
+        print(f"Error updating progress: {e}")
+
+def get_ydl_opts(output_filename: str) -> dict:
+    """
+    Return yt-dlp options.
+    """
+    return {
+        'format': 'bestvideo[height<=720][width=1280][ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]',
+        'outtmpl': output_filename,
+        'cookiefile': YT_COOKIES_PATH,
+        'quiet': True,
+        'noprogress': True,
+        'no_warnings': True,
+        'nocheckcertificate': True,
+        'postprocessors': [{'key': 'FFmpegVideoConvertor', 'preferedformat': 'mp4'}]
+    }
+
+def get_audio_opts(output_filename: str) -> dict:
+    """
+    Return yt-dlp options for audio download.
+    """
+    return {
+        'format': 'bestaudio/best',
+        'outtmpl': f'{output_filename}.%(ext)s',
+        'cookiefile': YT_COOKIES_PATH,
+        'quiet': True,
+        'noprogress': True,
+        'no_warnings': True,
+        'nocheckcertificate': True,
+        'postprocessors': [{
+            'key': 'FFmpegExtractAudio',
+            'preferredcodec': 'mp3',
+            'preferredquality': '192',
+        }]
+    }
+
+def download_video_sync(url: str) -> tuple:
+    """
+    Download a video using yt-dlp, along with its thumbnail.
+    This function is synchronous and can be run in an executor.
+    """
+    if not validate_url(url):
+        return None, "Invalid YouTube URL"
 
     try:
-        await message.edit_text(text)
-    except:
-        pass
-
-
-# ---------------- BOT CORE ----------------
-class YouTubeBot:
-
-    def __init__(self, temp_dir: Path):
-        self.temp_dir = temp_dir
-        self.store = {}
-        self.cache = {}
-        self.search_cache = {}
-
-    # ---------------- SEARCH ----------------
-    async def search(self, query: str):
-
-        if query in self.search_cache:
-            return self.search_cache[query]
-
-        await rate_limiter.wait()
-
-        def _run():
-            opts = {
-                'quiet': True,
-                'default_search': 'ytsearch5',
-                'noplaylist': True,
-            }
-
-            if os.path.exists(Config.COOKIES_FILE):
-                opts['cookiefile'] = Config.COOKIES_FILE
-
-            with yt_dlp.YoutubeDL(opts) as ydl:
-                return ydl.extract_info(query, download=False)
-
-        try:
-            loop = asyncio.get_event_loop()
-            info = await loop.run_in_executor(None, _run)
-
-            entries = (info or {}).get("entries") or []
-
-            for e in entries:
-                if e and e.get("webpage_url"):
-                    url = e["webpage_url"]
-                    self.search_cache[query] = url
-                    return url
-
-        except Exception as e:
-            logger.error(f"Search error: {e}")
-
-        return None
-
-    # ---------------- FORMATS ----------------
-    def formats(self, url):
-
-        if url in self.cache:
-            return self.cache[url]
-
-        opts = {'quiet': True, 'noplaylist': True}
-
-        if os.path.exists(Config.COOKIES_FILE):
-            opts['cookiefile'] = Config.COOKIES_FILE
-
-        with yt_dlp.YoutubeDL(opts) as ydl:
+        with yt_dlp.YoutubeDL({'quiet': True, 'cookiefile': YT_COOKIES_PATH}) as ydl:
             info = ydl.extract_info(url, download=False)
 
-        formats = []
+        if not info:
+            return None, "Could not fetch video information"
 
-        for f in info.get("formats", []):
-            if f.get("height"):
-                formats.append({
-                    "id": f["format_id"],
-                    "quality": f"{f['height']}p"
-                })
+        title = info.get('title', 'Unknown Title')
+        views = info.get('view_count', 0)
+        duration = info.get('duration', 0)
+        duration_str = format_duration(duration)
+        thumbnail_url = info.get('thumbnail', None)
 
-        seen = set()
-        clean = []
+        safe_title = sanitize_filename(title)
+        output_path = f"temp_media/{safe_title}.mp4"
+        os.makedirs("temp_media", exist_ok=True)
 
-        for f in formats:
-            if f["quality"] not in seen:
-                seen.add(f["quality"])
-                clean.append(f)
+        opts = get_ydl_opts(output_path)
+        with yt_dlp.YoutubeDL(opts) as ydl:
+            ydl.download([url])
 
-        self.cache[url] = clean[:8]
-        return clean[:8]
+        if not os.path.exists(output_path):
+            return None, "Download failed: File not created"
 
-    # ---------------- DOWNLOAD ----------------
-    async def download(self, url, format_id, status_msg=None):
+        file_size = os.path.getsize(output_path)
+        if file_size > 2_000_000_000:
+            os.remove(output_path)
+            return None, "Video file exceeds Telegram's 2GB limit."
 
-        await rate_limiter.wait()
+        # Download and prepare thumbnail
+        thumbnail_path = None
+        if thumbnail_url:
+            thumbnail_path = prepare_thumbnail_sync(thumbnail_url, output_path)
 
-        def _dl():
-            start = time.time()
-            loop = asyncio.get_event_loop()
-            last_update = 0
+        return {
+            'file_path': output_path,
+            'title': title,
+            'views': views,
+            'duration': duration_str,
+            'file_size': format_size(file_size),
+            'thumbnail_path': thumbnail_path
+        }, None
 
-            def hook(d):
-                nonlocal last_update
+    except yt_dlp.utils.DownloadError:
+        return None, "Download failed: Video unavailable or restricted"
+    except Exception as e:
+        return None, f"An unexpected error occurred: {e}"
 
-                if d.get('status') == 'downloading':
-                    now = time.time()
+def download_audio_sync(url: str) -> tuple:
+    """
+    Download audio from YouTube using yt-dlp.
+    This function is synchronous and can be run in an executor.
+    """
+    if not validate_url(url):
+        return None, "Invalid YouTube URL"
 
-                    if now - last_update < 1:
-                        return
+    try:
+        with yt_dlp.YoutubeDL({'quiet': True, 'cookiefile': YT_COOKIES_PATH}) as ydl:
+            info = ydl.extract_info(url, download=False)
 
-                    last_update = now
+        if not info:
+            return None, "Could not fetch video information"
 
-                    downloaded = d.get('downloaded_bytes', 0)
-                    total = d.get('total_bytes') or d.get('total_bytes_estimate') or 0
+        title = info.get('title', 'Unknown Title')
+        views = info.get('view_count', 0)
+        duration = info.get('duration', 0)
+        duration_str = format_duration(duration)
 
-                    asyncio.run_coroutine_threadsafe(
-                        progress(downloaded, total, status_msg, start),
-                        loop
-                    )
+        safe_title = sanitize_filename(title)
+        base_path = f"temp_media/{safe_title}"
+        os.makedirs("temp_media", exist_ok=True)
 
-            opts = {
-                'format': format_id,
-                'outtmpl': str(self.temp_dir / '%(title)s.%(ext)s'),
-                'merge_output_format': 'mp4',
-                'quiet': True,
-                'progress_hooks': [hook],
-                'retries': 10,
-                'fragment_retries': 10,
-            }
+        opts = get_audio_opts(base_path)
+        with yt_dlp.YoutubeDL(opts) as ydl:
+            ydl.download([url])
 
-            if os.path.exists(Config.COOKIES_FILE):
-                opts['cookiefile'] = Config.COOKIES_FILE
+        output_path = f"{base_path}.mp3"
+        if not os.path.exists(output_path):
+            possible_files = [f for f in os.listdir("temp_media") if f.startswith(safe_title)]
+            if possible_files:
+                original_file = os.path.join("temp_media", possible_files[0])
+                if os.path.exists(original_file):
+                    return None, f"File exists but conversion failed: {original_file}"
+            return None, "Download failed: File not created"
 
-            with yt_dlp.YoutubeDL(opts) as ydl:
-                info = ydl.extract_info(url, download=True)
-                file = ydl.prepare_filename(info)
-                return file, info.get("title", "Video")
+        file_size = os.path.getsize(output_path)
+        if file_size > 2_000_000_000:
+            os.remove(output_path)
+            return None, "Audio file exceeds Telegram's 2GB limit."
 
+        return {
+            'file_path': output_path,
+            'title': title,
+            'views': views,
+            'duration': duration_str,
+            'file_size': format_size(file_size)
+        }, None
+
+    except yt_dlp.utils.DownloadError as e:
+        return None, f"Download failed: {e}"
+    except Exception as e:
+        return None, f"An unexpected error occurred: {e}"
+
+def prepare_thumbnail_sync(thumbnail_url: str, output_path: str) -> str:
+    """
+    Download and prepare the thumbnail image.
+    This function is synchronous and can be run in an executor.
+    """
+    try:
+        response = requests.get(thumbnail_url)
+        if response.status_code == 200:
+            thumbnail_temp_path = f"{output_path}_thumbnail.jpg"
+            with open(thumbnail_temp_path, 'wb') as f:
+                f.write(response.content)
+
+            thumbnail_resized_path = f"{output_path}_thumb.jpg"
+            with Image.open(thumbnail_temp_path) as img:
+                img = img.convert('RGB')
+                img.save(thumbnail_resized_path, "JPEG", quality=85)
+
+            os.remove(thumbnail_temp_path)
+            return thumbnail_resized_path
+    except Exception as e:
+        print(f"Error preparing thumbnail: {e}")
+    return None
+
+async def search_youtube(query: str) -> Optional[str]:
+    """
+    Search YouTube for the first video result matching the query.
+    """
+    ydl_opts = {
+        'format': 'bestaudio/best',
+        'default_search': 'ytsearch1:',
+        'nooverwrites': True,
+        'cookiefile': YT_COOKIES_PATH,
+        'no_warnings': True,
+        'quiet': True,
+        'no_color': True,
+        'simulate': True,
+    }
+
+    try:
+        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+            info = await asyncio.get_event_loop().run_in_executor(executor, ydl.extract_info, query, False)
+            if 'entries' in info and info['entries']:
+                return info['entries'][0]['webpage_url']
+    except Exception as e:
+        print(f"YouTube search error: {e}")
+
+    return None
+
+async def handle_download_request(client, message, query):
+    search_message = await client.send_message(
+        chat_id=message.chat.id,
+        text="**⚡️Searching for the video...**",
+        parse_mode=ParseMode.MARKDOWN
+    )
+
+    if not validate_url(query):
+        video_url = await search_youtube(query)
+        if not video_url:
+            await search_message.edit_text(
+                text="**❌ No matching videos found**"
+            )
+            return
+    else:
+        video_url = query
+
+    try:
         loop = asyncio.get_event_loop()
-        return await loop.run_in_executor(None, _dl)
+        result, error = await loop.run_in_executor(executor, download_video_sync, video_url)
+        if error:
+            await search_message.edit(
+                text=f"**An Error Occurred During Download❌**",
+                parse_mode=ParseMode.MARKDOWN
+            )
+            return
 
-
-ytbot = YouTubeBot(Config.TEMP_DIR)
-
-
-# ---------------- HANDLERS ----------------
-def setup_handlers(app: Client):
-
-    @app.on_message(filters.command("yt"))
-    async def yt(client: Client, message: Message):
-
-        if len(message.command) < 2:
-            return await message.reply("❌ Send video name or link")
-
-        query = message.text.split(maxsplit=1)[1]
-
-        status = await message.reply("🔍 Searching... 🎬")
-
-        url = query if query.startswith("http") else await ytbot.search(query)
-
-        if not url:
-            return await status.edit("❌ No Video Found 😢")
-
-        formats = ytbot.formats(url)
-
-        if not formats:
-            return await status.edit("❌ No formats available")
-
-        uid = str(time.time())
-        ytbot.store[uid] = url
-
-        buttons = [
-            [InlineKeyboardButton(f"🎥 {f['quality']}", callback_data=f"yt|{f['id']}|{uid}")]
-            for f in formats
-        ]
-
-        await status.edit(
-            "🎬 Select Quality 👇",
-            reply_markup=InlineKeyboardMarkup(buttons)
-        )
-
-    # ---------------- CALLBACK ----------------
-    @app.on_callback_query(filters.regex("^yt\\|"))
-    async def callback(client: Client, query: CallbackQuery):
-
-        _, format_id, uid = query.data.split("|")
-
-        url = ytbot.store.get(uid)
-
-        if not url:
-            return await query.message.edit("❌ Session expired")
-
-        status_msg = query.message
-
-        await query.message.edit("📥 Downloading... 🎬")
-
-        file, title = await ytbot.download(url, format_id, status_msg)
-
-        if not file:
-            return await query.message.edit("❌ Download Failed 😢")
-
-        await client.send_video(
-            chat_id=query.message.chat.id,
-            video=file,
-            caption=f"🎬 **{title}**\n🔥 Downloaded Successfully",
+        await search_message.edit(
+            text="**Found ☑️ Downloading...**",
             parse_mode=ParseMode.MARKDOWN
         )
 
-        try:
-            os.remove(file)
-        except:
-            pass
+        video_path = result['file_path']
+        title = result['title']
+        views = result['views']
+        duration = result['duration']
+        file_size = result['file_size']
+        thumbnail_path = result.get('thumbnail_path')
 
-        await query.message.delete()
+        if message.from_user:
+            user_full_name = f"{message.from_user.first_name} {message.from_user.last_name or ''}".strip()
+            user_info = f"[{user_full_name}](tg://user?id={message.from_user.id})"
+        else:
+            group_name = message.chat.title or "this group"
+            group_url = f"https://t.me/{message.chat.username}" if message.chat.username else "this group"
+            user_info = f"[{group_name}]({group_url})"
 
+        video_caption = (
+            f"🎵 **Title:** **{title}**\n"
+            f"━━━━━━━━━━━━━━━━━━━━━\n"
+            f"👁️‍🗨️ **Views:** **{views}** views\n"
+            f"🔗 [Watch On YouTube]({video_url})\n"
+            f"⏱️ **Duration:** **{duration}**\n"
+            f"━━━━━━━━━━━━━━━━━━━━━\n"
+            f"⚡️ **Downloaded By** {user_info}"
+        )
 
-# ---------------- INIT WRAPPER ----------------
+        last_update_time = [0]
+        start_time = time.time()
+
+        await client.send_video(
+            chat_id=message.chat.id,
+            video=video_path,
+            caption=video_caption,
+            parse_mode=ParseMode.MARKDOWN,
+            supports_streaming=True,
+            thumb=thumbnail_path,
+            progress=progress_bar,
+            progress_args=(search_message, start_time, last_update_time)
+        )
+
+        # Cleanup
+        if os.path.exists(video_path):
+            os.remove(video_path)
+        if thumbnail_path and os.path.exists(thumbnail_path):
+            os.remove(thumbnail_path)
+
+        await search_message.delete()
+
+    except Exception as e:
+        await search_message.edit(
+            text=f"**An Error Occurred During Download❌**",
+            parse_mode=ParseMode.MARKDOWN
+        )
+
+async def handle_audio_request(client, message, query):
+    status_message = await client.send_message(
+        chat_id=message.chat.id,
+        text="**⚡️Searching for the song...**",
+        parse_mode=ParseMode.MARKDOWN
+    )
+
+    if not validate_url(query):
+        video_url = await search_youtube(query)
+        if not video_url:
+            await status_message.edit_text(
+                text="**❌ No matching audios found**"
+            )
+            return
+    else:
+        video_url = query
+
+    try:
+        loop = asyncio.get_event_loop()
+        result, error = await loop.run_in_executor(executor, download_audio_sync, video_url)
+        if error:
+            await status_message.edit(
+                text=f"**An Error Occurred During Download❌**",
+                parse_mode=ParseMode.MARKDOWN
+            )
+            return
+
+        await status_message.edit(
+            text="**Found ☑️ Downloading...**",
+            parse_mode=ParseMode.MARKDOWN
+        )
+
+        audio_path = result['file_path']
+        title = result['title']
+        views = result['views']
+        duration = result['duration']
+        file_size = result['file_size']
+
+        if message.from_user:
+            user_full_name = f"{message.from_user.first_name} {message.from_user.last_name or ''}".strip()
+            user_info = f"[{user_full_name}](tg://user?id={message.from_user.id})"
+        else:
+            group_name = message.chat.title or "this group"
+            group_url = f"https://t.me/{message.chat.username}" if message.chat.username else "this group"
+            user_info = f"[{group_name}]({group_url})"
+
+        audio_caption = (
+            f"🎵 **Title:** **{title}**\n"
+            f"━━━━━━━━━━━━━━━━━━━━━\n"
+            f"👁️‍🗨️ **Views:** **{views}** views\n"
+            f"🔗 [Listen On YouTube]({video_url})\n"
+            f"⏱️ **Duration:** **{duration}**\n"
+            f"━━━━━━━━━━━━━━━━━━━━━\n"
+            f"⚡️ **Downloaded By** {user_info}"
+        )
+
+        last_update_time = [0]
+        start_time = time.time()
+
+        await client.send_audio(
+            chat_id=message.chat.id,
+            audio=audio_path,
+            caption=audio_caption,
+            title=title,
+            performer="Smart Tool ⚙️",
+            parse_mode=ParseMode.MARKDOWN,
+            progress=progress_bar,
+            progress_args=(status_message, start_time, last_update_time)
+        )
+
+        os.remove(audio_path)
+        await status_message.delete()
+    except Exception as e:
+        await status_message.edit_text(
+            text=f"**An Error Occurred During Download❌**"
+        )
+        if os.path.exists(audio_path):
+            os.remove(audio_path)
+
 def setup_downloader_handler(app: Client):
-    setup_handlers(app)
+    @app.on_message(filters.regex(r"^[/.](yt|video)(\s+.+)?$"))
+    async def video_command(client, message):
+        command_parts = message.text.split(maxsplit=1)
+        if len(command_parts) == 1 or not command_parts[1]:
+            await client.send_message(
+                chat_id=message.chat.id,
+                text="**Please provide your video name or link❌**",
+                parse_mode=ParseMode.MARKDOWN
+            )
+        else:
+            url_or_query = command_parts[1]
+            await handle_download_request(client, message, url_or_query)
+
+    @app.on_message(filters.regex(r"^[/.]song(\s+.+)?$"))
+    async def song_command(client, message):
+        command_parts = message.text.split(maxsplit=1)
+        if len(command_parts) == 1 or not command_parts[1]:
+            await client.send_message(
+                chat_id=message.chat.id,
+                text="**Please provide a Music Name Or Link❌**",
+                parse_mode=ParseMode.MARKDOWN
+            )
+        else:
+            url_or_query = command_parts[1]
+            await handle_audio_request(client, message, url_or_query)
