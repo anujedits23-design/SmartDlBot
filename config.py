@@ -1,7 +1,7 @@
 import os
 API_ID = os.environ.get("API_ID", "34446649")
 API_HASH = os.environ.get("API_HASH", "8dc570c08d8e35e88fb9bfc73c65d7fa")
-BOT_TOKEN = os.environ.get("BOT_TOKEN", "8730656807:AAEb61aU6vTWCTkdpy6SLQ36T4m573fIoWQ")
+BOT_TOKEN = os.environ.get("BOT_TOKEN", "8726665578:AAHLSN3AxqWoRzeSJU2oV4Bm4QPfKKSkPKo")
 ADMIN_IDS_RAW = os.getenv("ADMIN_IDS", "7892805795")
 try:
     ADMIN_IDS = list(map(int, ADMIN_IDS_RAW.split(",")))
